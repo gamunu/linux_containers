@@ -1,5 +1,5 @@
-mod client;
 mod backend;
+mod client;
 mod types;
 
 #[cfg(test)]

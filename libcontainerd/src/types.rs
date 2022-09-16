@@ -31,13 +31,11 @@ impl Event {
 
 pub struct EventInfo<'event> {
     container_id: &'event str,
-    process_id:  &'event str,
+    process_id: &'event str,
     pid: u32,
     exit_code: u32,
     exited_at: Time,
     error: &'event str,
 }
 
-pub struct Version {
-
-}
+pub struct Version {}
