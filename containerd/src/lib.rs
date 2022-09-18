@@ -1,6 +1,14 @@
 mod runtime;
 mod mount;
 mod containers;
+pub mod api;
+
+//TODO: Find out how we can include google/rpc/status.proto
+pub mod plugin {
+    pub mod rpc {
+        include!(concat!(env!("OUT_DIR"), "/containerd.plugin.rpc.rs"));
+    }
+}
 
 // Version holds the complete version number. Filled in at linking time.
 pub static VERSION: &'static str = "1.6.0+unknown";

@@ -1,6 +1,6 @@
-pub mod task;
 pub mod events;
 pub mod monitor;
+pub mod task;
 
 use super::mount;
 use time::Time;
@@ -51,6 +51,6 @@ pub trait PlatformRuntime {
     // tasks returns all the current tasks for the runtime.
     // Any container runs at most one task at a time.
     fn task(all: bool) -> Result<Vec<Box<dyn task::Task>>, String>;
-	// delete remove a task.
-	fn delete(task_id: &str) -> Result<*mut Exit, String>;
+    // delete remove a task.
+    fn delete(task_id: &str) -> Result<*mut Exit, String>;
 }
