@@ -1,7 +1,7 @@
 mod runtime;
-mod mount;
 mod containers;
 pub mod api;
+pub mod mount;
 
 //TODO: Find out how we can include google/rpc/status.proto
 pub mod plugin {

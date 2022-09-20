@@ -9,6 +9,9 @@ time = "0.3"
 bytes = "0.4"
 prost = "0.11"
 prost-types = "0.11"
+nix = "0.25"
+libc = "0.2"
+loopdev = "0.4.0"
 
 [build-dependencies]
 prost-build = "0.11"
