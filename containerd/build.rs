@@ -1,9 +1,9 @@
 use std::io::Result;
-use std::path::Path;
 
 fn main() -> Result<()> {
 
-    //build plugins 
+    // build plugins
+    // TODO: Remove once figurout a way to configure google.rpc proto
     prost_build::Config::new().compile_protos(
         &[
             "proto/plugin/rpc/status.proto",
@@ -11,6 +11,7 @@ fn main() -> Result<()> {
         &["./proto/"],
     )?;
 
+    // build API types
     prost_build::Config::new().compile_protos(
         &[
             "proto/api/types/descriptor.proto",
@@ -23,6 +24,7 @@ fn main() -> Result<()> {
         &["./proto/"],
     )?;
 
+    // build events APIs
     prost_build::Config::new().compile_protos(
         &[
             "proto/api/events/container.proto",
@@ -35,6 +37,7 @@ fn main() -> Result<()> {
         &["./proto/"],
     )?;
 
+    // build runtime APIs
     prost_build::Config::new().compile_protos(
         &[
             "proto/api/runtime/sandbox/v1/sandbox.proto",
