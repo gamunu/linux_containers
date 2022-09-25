@@ -1,0 +1,11 @@
+#cloud-config
+
+users:
+  - name: ubuntu
+    ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGA/RwIWHfaY+CGsGWkSa2Dk/UbejnhgvWx+i7gqrj2lcHB2/KXBG+O5X2RBBhchb5A0TJ1LKa6TFVfTNa9hlHPN72sYKyZM3BJ7m9QUPuxfTFtda88gO3Dhy2vKH10XFImhmxxgxUF8vKpA+Nb5M3IoGljaXoxqTIHPkn2t/lRppiYYKqai1PP9lrhr+o3/T6YtyGRComhdpQtnkzFGrDh1pSODCyy76X/BSjIojAwFoNPDDFbWI6bplihX6N9qN8oRJThjQEK5bW4il7FIeJQu8+m3/lO8D26Wd5jQlgM+kSJfKEvGoSa+4ei3/ASfb3D6TFUwvTmF3O3EeBrjsl gamunu@yeti
+
+runcmd:
+  - "apt-get update -y && apt-get upgrade -y"
+  - "apt-get install make build-essential libclang-dev unzip protobuf-compiler -y"
+  - [su, "ubuntu", "-c", "curl https://sh.rustup.rs -sSf | sh -s -- -y"]
