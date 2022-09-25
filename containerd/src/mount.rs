@@ -1,10 +1,10 @@
 pub mod losetup;
-
-use loopdev::LoopControl;
 use nix::unistd;
 use std::collections::HashMap;
+use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 
 static ALLOWED_HELPER_BINARIES: [&'static str; 2] = ["mount.fuse", "mount.fuse3"];
 static PAGE_SIZE: usize = 4096;
@@ -13,7 +13,7 @@ static PAGE_SIZE: usize = 4096;
 /// serialized mount syscall. Components either emit or consume mounts.
 pub struct Mount {
     // Type specifies the host-specific of the mount.
-    mount_type: String,
+    fs_type: String,
     // Source specifies where to mount from. Depending on the host system, this
     // can be a source path or device.
     source: PathBuf,
@@ -35,7 +35,7 @@ impl Mount {
         for binary in ALLOWED_HELPER_BINARIES {
             // ALLOWED_HELPER_BINARIES = "mount.fuse", typePrefix = "fuse."
             let type_prefix = binary.strip_prefix("mount.").unwrap();
-            if type_prefix.starts_with(&self.mount_type) {
+            if type_prefix.starts_with(&self.fs_type) {
                 return self.mount_with_helper(binary, type_prefix, target);
             }
         }
@@ -48,7 +48,7 @@ impl Mount {
         // avoid hitting one page limit of mount argument buffer
         //
         // NOTE: 512 is a buffer during pagesize check.
-        if self.mount_type == "overlay" && self.option_size() >= PAGE_SIZE - 512 {
+        if self.fs_type == "overlay" && self.option_size() >= PAGE_SIZE - 512 {
             (chdir, options) = self
                 .compact_lower_dir_option(&self.options)
                 .unwrap_or((PathBuf::from(""), self.options.clone()))
@@ -65,10 +65,7 @@ impl Mount {
         }
 
         // propagation types.
-        let ptypes: u64 = libc::MS_SHARED
-            | libc::MS_PRIVATE
-            | libc::MS_SLAVE
-            | libc::MS_UNBINDABLE;
+        let ptypes: u64 = libc::MS_SHARED | libc::MS_PRIVATE | libc::MS_SLAVE | libc::MS_UNBINDABLE;
 
         // Ensure propagation type change flags aren't included in other calls.
         let oflags = flags ^ !ptypes;
@@ -77,16 +74,104 @@ impl Mount {
         if (flags & libc::MS_REMOUNT) == 0 || data != "" {
             // Initial call applying all non-propagation flags for mount
             // or remount with changed data
+            let mut source = self.source.clone();
             if losetup {
                 //setup loop hear
-                let read_only: bool = oflags&libc::MS_RDONLY == libc::MS_RDONLY;
-                losetup::setup_loop(&self.source, read_only, true);
+                let read_only: bool = oflags & libc::MS_RDONLY == libc::MS_RDONLY;
+                source = match losetup::setup_loop(&self.source, read_only, true) {
+                    Ok(file) => file,
+                    Err(e) => return Err(e),
+                };
+            }
+
+            match self.mount_at(
+                chdir.as_path(),
+                source.as_path(),
+                target,
+                self.fs_type.as_str(),
+                flags,
+                data.as_str(),
+            ) {
+                Ok(_) => {} // no value
+                Err(e) => return Err(e),
+            }
+        }
+
+        if flags & ptypes != 0 {
+            //change the propogation type
+            let pflags = ptypes | libc::MS_REC | libc::MS_SILENT;
+
+            let flags_pflags = match sys_mount::MountFlags::from_bits(flags & pflags) {
+                Some(f) => f,
+                None => return Err(format!("Unable to convert flags and pflags from bits")), // we know this works
+            };
+            match sys_mount::Mount::new("", target, "", flags_pflags, Some(&data)) {
+                Ok(_) => {}
+                Err(e) => return Err(format!("Mount failed with error: {:?}", e)),
+            }
+        }
+
+        let broflags = libc::MS_BIND | libc::MS_RDONLY;
+
+        if oflags & broflags == broflags {
+            let flags_broflags = match sys_mount::MountFlags::from_bits(oflags | libc::MS_REMOUNT) {
+                Some(f) => f,
+                None => return Err(format!("Unable to convert flags and pflags from bits")), // we know this works
+            };
+
+            match sys_mount::Mount::new("", target, "", flags_broflags, None) {
+                Ok(_) => {}
+                Err(e) => return Err(format!("Mount failed with error: {:?}", e)),
             }
         }
 
         Ok(())
     }
 
+    fn is_fuse(&self, dir: &str) -> bool {
+        let fstype = match nix::sys::statfs::statfs(dir) {
+            Ok(s) => s.filesystem_type(),
+            Err(_) => return false,
+        };
+
+        return fstype == nix::sys::statfs::FUSE_SUPER_MAGIC;
+    }
+
+    fn unmount_fuse(&self, target: &str) -> Result<(), String> {
+        let binaries: [&str; 2] = ["fusermount3", "fusermount"];
+        for binary in binaries {
+            match Command::new(binary).args(["-u", target]).status() {
+                Ok(_) => {}
+                Err(e) => return Err(format!("FUSE helper binary unmount failed: {:?}", target)),
+            }
+        }
+        Ok(())
+    }
+
+    fn umount(&self, target: &str, flags: i32) -> Result<(), String> {
+        if self.is_fuse(target) {
+            match self.unmount_fuse(target) {
+                Ok(e) => return Ok(()),
+                Err(e) => return Err(format!("FUSE unmount failed: {:?})", e)),
+            };
+        };
+
+        for i in 0..50 {
+            let f = match sys_mount::UnmountFlags::from_bits(flags) {
+                Some(f) => f,
+                None => return Err(format!("Unable to convert flags from bits")), // we know this works
+            };
+
+            match sys_mount::unmount(target, f) {
+                Ok(_) => {}
+                Err(e) => return Err(format!("failed to unmount target {:?}:{:?}", target, e)),
+            };
+        }
+
+        Ok(())
+    }
+
+    // TODO: Implement this if only required
     fn mount_with_helper(
         &self,
         helper_binary: &str,
@@ -104,6 +189,44 @@ impl Mount {
             size += opt.len();
         }
         return size;
+    }
+
+    fn mount_at(
+        &self,
+        chdir: &Path,
+        source: &Path,
+        target: &str,
+        fstype: &str,
+        flags: u64,
+        data: &str,
+    ) -> Result<(), String> {
+        //TODO: bad code, fix the if statment logic
+        if chdir.to_str().unwrap().eq("") {
+            // Attempt to mount the src device to the dest directory.
+            let mount_flag = match sys_mount::MountFlags::from_bits(flags) {
+                Some(f) => f,
+                None => return Err(format!("Unable to convert flags from bits")), // we know this works
+            };
+
+            let mount = sys_mount::Mount::new(source, target, fstype, mount_flag, Some(data));
+        }
+
+        let file = match File::open(chdir) {
+            Ok(file) => file,
+            Err(e) => return Err(format!("failed to mountat: {:?}", e)),
+        };
+
+        let attributes = match file.metadata() {
+            Ok(attr) => attr,
+            Err(e) => return Err(format!("failed to mountat: {:?}", e)),
+        };
+
+        if !attributes.is_dir() {
+            return Err(format!("failed to mountat: {:?} is not dir", chdir));
+        };
+
+        //TODO: fork and mount
+        Ok(())
     }
 
     /// compact_lower_dir_option updates overlay lowdir option and returns the common
@@ -233,10 +356,7 @@ impl Mount {
             ("norelatime", Flag::new(false, libc::MS_RELATIME)),
             ("nostrictatime", Flag::new(false, libc::MS_STRICTATIME)),
             ("nosuid", Flag::new(false, libc::MS_NOSUID)),
-            (
-                "rbind",
-                Flag::new(false, libc::MS_BIND | libc::MS_REC),
-            ),
+            ("rbind", Flag::new(false, libc::MS_BIND | libc::MS_REC)),
             ("relatime", Flag::new(false, libc::MS_RELATIME)),
             ("remount", Flag::new(false, libc::MS_REMOUNT)),
             ("ro", Flag::new(false, libc::MS_RDONLY)),

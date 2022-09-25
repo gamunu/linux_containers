@@ -1,8 +1,5 @@
 use loopdev::LoopControl;
-use std::collections::HashMap;
-use std::os::raw::c_ulong; 
-use std::os::unix::io::AsRawFd;
-use std::{fs::File, path::PathBuf, path::Path};
+use std::path::PathBuf;
 
 pub fn setup_loop(source: &PathBuf, read_only: bool, auto_clear: bool) -> Result<PathBuf, String> {
     let lc = match LoopControl::open() {
