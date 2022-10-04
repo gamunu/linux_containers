@@ -28,9 +28,9 @@ pub struct Container {
     runtime: RuntimeInfo,
 
     /// Spec should carry the runtime specification used to implement the
-	/// container.
-	///
-	/// This field is required but mutable.
+    /// container.
+    ///
+    /// This field is required but mutable.
     spec: prost_types::Any,
 
     /// snapshot_key specifies the snapshot key to use for the container's root
@@ -42,8 +42,8 @@ pub struct Container {
     snapshot_key: String,
 
     /// snapshotter specifies the snapshotter name used for rootfs
-	///
-	/// This field is not required but immutable.
+    ///
+    /// This field is not required but immutable.
     snapshotter: String,
 
     /// created_at is the time at which the container was created.
@@ -58,13 +58,13 @@ pub struct Container {
     /// sandbox_id is an identifier of sandbox this container belongs to.
     ///
     /// This property is optional, but can't be changed after creation.
-    sandbox_id: String
+    sandbox_id: String,
 }
 
 /// RuntimeInfo holds runtime specific information
 struct RuntimeInfo {
     name: String,
-    options: prost_types::Any
+    options: prost_types::Any,
 }
 
 /// Store interacts with the underlying container storage
@@ -76,10 +76,10 @@ trait Store {
     fn get(&self, id: &str) -> Result<Container, String>;
 
     /// list returns containers that match one or more of the provided filters.
-    fn list(&self,filters: &[&str]) -> Result<Vec<Container>, String>;
+    fn list(&self, filters: &[&str]) -> Result<Vec<Container>, String>;
 
     /// create a container in the store from the provided container.
-    fn create(&self,container: Container) -> Result<Vec<Container>, String>;
+    fn create(&self, container: Container) -> Result<Vec<Container>, String>;
 
     /// update the container with the provided container object. ID must be set.
     ///

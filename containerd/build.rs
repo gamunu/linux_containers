@@ -1,15 +1,9 @@
 use std::io::Result;
 
 fn main() -> Result<()> {
-
     // build plugins
     // TODO: Remove once figurout a way to configure google.rpc proto
-    prost_build::Config::new().compile_protos(
-        &[
-            "proto/plugin/rpc/status.proto",
-        ],
-        &["./proto/"],
-    )?;
+    prost_build::Config::new().compile_protos(&["proto/plugin/rpc/status.proto"], &["./proto/"])?;
 
     // build API types
     prost_build::Config::new().compile_protos(
@@ -45,7 +39,6 @@ fn main() -> Result<()> {
         ],
         &["./proto/"],
     )?;
-
 
     prost_build::Config::new().compile_protos(
         &[

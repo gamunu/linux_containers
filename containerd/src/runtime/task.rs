@@ -5,7 +5,7 @@ use time::Time;
 
 /// TaskInfo provides task specific information
 pub struct TaskInfo {
-    id:String,
+    id: String,
     runtime: String,
     spec: Vec<u8>,
     namespace: String,
@@ -54,7 +54,11 @@ pub trait Task {
     // check_point checkpoints a container to an image with live system data
     fn check_point(&self, path: &str, opts: *mut prost_types::Any) -> Result<(), String>;
     // update sets the provided resources to a running task
-    fn update(&self, resources: *mut prost_types::Any, annotations: HashMap<String, String>) -> Result<(), String>;
+    fn update(
+        &self,
+        resources: *mut prost_types::Any,
+        annotations: HashMap<String, String>,
+    ) -> Result<(), String>;
     // process returns a process within the task for the provided id
     fn process(&self, id: &str) -> Result<Box<dyn ExecProcess>, String>;
     // stats returns runtime specific metrics for a task
