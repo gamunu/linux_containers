@@ -13,11 +13,11 @@ struct NoopTaskMonitor {}
 
 impl TaskMonitor for NoopTaskMonitor {
     fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 
     fn stop(&self, task: &dyn Task) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 }
 

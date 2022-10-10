@@ -14,7 +14,7 @@ pub enum Event {
 }
 
 impl Event {
-    fn as_str(&self) -> &'static str {
+    fn as_str<'a>(&self) -> &'a str {
         match self {
             Event::Unknown => "unknown",
             Event::Exit => "exit",

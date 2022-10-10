@@ -6,20 +6,23 @@ fn main() -> Result<()> {
     prost_build::Config::new().compile_protos(&["proto/plugin/rpc/status.proto"], &["./proto/"])?;
 
     // build API types
-    prost_build::Config::new().compile_protos(
-        &[
-            "proto/api/types/descriptor.proto",
-            "proto/api/types/metrics.proto",
-            "proto/api/types/mount.proto",
-            "proto/api/types/platform.proto",
-            "proto/api/types/sandbox.proto",
-            "proto/api/types/task/task.proto",
-        ],
-        &["./proto/"],
-    )?;
+    prost_build::Config::new()
+        .disable_comments(&["."])
+        .compile_protos(
+            &[
+                "proto/api/types/descriptor.proto",
+                "proto/api/types/metrics.proto",
+                "proto/api/types/mount.proto",
+                "proto/api/types/platform.proto",
+                "proto/api/types/sandbox.proto",
+                "proto/api/types/task/task.proto",
+            ],
+            &["./proto/"],
+        )?;
 
     // build events APIs
-    prost_build::Config::new().compile_protos(
+    prost_build::Config::new()
+    .disable_comments(&["."]).compile_protos(
         &[
             "proto/api/events/container.proto",
             "proto/api/events/content.proto",
@@ -32,7 +35,8 @@ fn main() -> Result<()> {
     )?;
 
     // build runtime APIs
-    prost_build::Config::new().compile_protos(
+    prost_build::Config::new()
+    .disable_comments(&["."]).compile_protos(
         &[
             "proto/api/runtime/sandbox/v1/sandbox.proto",
             "proto/api/runtime/task/v2/shim.proto",
@@ -40,7 +44,8 @@ fn main() -> Result<()> {
         &["./proto/"],
     )?;
 
-    prost_build::Config::new().compile_protos(
+    prost_build::Config::new()
+    .disable_comments(&["."]).compile_protos(
         &[
             "proto/api/services/containers/v1/containers.proto",
             "proto/api/services/content/v1/content.proto",

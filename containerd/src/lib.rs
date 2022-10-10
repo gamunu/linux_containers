@@ -3,7 +3,9 @@ mod containers;
 pub mod content;
 pub mod image;
 pub mod mount;
+pub mod error;
 mod runtime;
+mod filters;
 
 //TODO: Find out how we can include google/rpc/status.proto
 pub mod plugin {

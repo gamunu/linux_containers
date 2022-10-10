@@ -16,6 +16,8 @@ sys-mount = "1.5"
 log = "0.4"
 tokio = "1.21"
 oci-spec = "0.5.8"
+filetime = "0.2"
+regex = "1"
 image_digest = { path = "../image_digest" }
 
 [build-dependencies]

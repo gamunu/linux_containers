@@ -24,7 +24,7 @@ pub enum EventTopic {
 }
 
 impl EventTopic {
-    fn as_str(&self) -> &'static str {
+    fn as_str<'a>(&self) -> &'a str {
         match self {
             EventTopic::TaskCreate => "/tasks/create",
             EventTopic::TaskStart => "/tasks/start",
