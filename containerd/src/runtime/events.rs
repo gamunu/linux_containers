@@ -25,18 +25,20 @@ pub enum EventTopic {
 
 impl EventTopic {
     fn as_str<'a>(&self) -> &'a str {
+        use EventTopic::*;
+
         match self {
-            EventTopic::TaskCreate => "/tasks/create",
-            EventTopic::TaskStart => "/tasks/start",
-            EventTopic::TaskOOM => "/tasks/oom",
-            EventTopic::TaskExit => "/tasks/exit",
-            EventTopic::TaskDelete => "/tasks/delete",
-            EventTopic::TaskExecAdded => "/tasks/exec-added",
-            EventTopic::TaskExecStarted => "/tasks/exec-started",
-            EventTopic::TaskPaused => "/tasks/paused",
-            EventTopic::TaskResumed => "/tasks/resumed",
-            EventTopic::TaskCheckpointed => "/tasks/checkpointed",
-            EventTopic::TaskUnknown => "/tasks/?",
+            TaskCreate => "/tasks/create",
+            TaskStart => "/tasks/start",
+            TaskOOM => "/tasks/oom",
+            TaskExit => "/tasks/exit",
+            TaskDelete => "/tasks/delete",
+            TaskExecAdded => "/tasks/exec-added",
+            TaskExecStarted => "/tasks/exec-started",
+            TaskPaused => "/tasks/paused",
+            TaskResumed => "/tasks/resumed",
+            TaskCheckpointed => "/tasks/checkpointed",
+            TaskUnknown => "/tasks/?",
         }
     }
 }

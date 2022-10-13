@@ -1,3 +1,4 @@
+use crate::error::Result;
 use std::collections::HashMap;
 use time::Time;
 
@@ -73,23 +74,23 @@ trait Store {
     ///
     /// Container object is returned on success. If the id is not known to the
     /// store, an error will be returned.
-    fn get(&self, id: &str) -> Result<Container, String>;
+    fn get(&self, id: &str) -> Result<Container>;
 
     /// list returns containers that match one or more of the provided filters.
-    fn list(&self, filters: &[&str]) -> Result<Vec<Container>, String>;
+    fn list(&self, filters: &[&str]) -> Result<Vec<Container>>;
 
     /// create a container in the store from the provided container.
-    fn create(&self, container: Container) -> Result<Vec<Container>, String>;
+    fn create(&self, container: Container) -> Result<Vec<Container>>;
 
     /// update the container with the provided container object. ID must be set.
     ///
     /// If one or more fieldpaths are provided, only the field corresponding to
     /// the fieldpaths will be mutated.
-    fn update(&self, container: Container, fieldpaths: &[&str]) -> Result<Vec<Container>, String>;
+    fn update(&self, container: Container, fieldpaths: &[&str]) -> Result<Vec<Container>>;
 
     /// delete a container using the id.
     ///
     /// nil will be returned on success. If the container is not known to the
     /// store, ErrNotFound will be returned.
-    fn delete(&self, id: &str) -> Result<(), String>;
+    fn delete(&self, id: &str) -> Result<()>;
 }

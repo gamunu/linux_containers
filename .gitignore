@@ -16,6 +16,7 @@ Cargo.lock
 # IDEs
 .vscode
 .idea
+.fleet
 
 # mac
 .DS_Store

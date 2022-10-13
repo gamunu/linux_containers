@@ -1,6 +1,6 @@
+use crate::error::Result;
 use core::str;
 use std::collections::HashMap;
-
 use time::Time;
 
 /// TaskInfo provides task specific information
@@ -16,17 +16,17 @@ pub trait Process {
     // id of the process
     fn id(&self) -> String;
     // state returns the process state
-    fn state(&self) -> Result<State, String>;
+    fn state(&self) -> Result<State>;
     // kill signals a container
-    fn kill(&self, signal: u32, all: bool) -> Result<(), String>;
+    fn kill(&self, signal: u32, all: bool) -> Result<()>;
     // resize_pty resizes the processes pty/console
-    fn resize_pty(&self, size: ConsoleSize) -> Result<(), String>;
+    fn resize_pty(&self, size: ConsoleSize) -> Result<()>;
     // close_io closes the processes IO
-    fn close_io(&self) -> Result<(), String>;
+    fn close_io(&self) -> Result<()>;
     // start the container's user defined process
-    fn start(&self) -> Result<(), String>;
+    fn start(&self) -> Result<()>;
     // wait for the process to exit
-    fn wait(&self) -> Result<super::Exit, String>;
+    fn wait(&self) -> Result<super::Exit>;
 }
 
 /// ExecProcess is a process spawned in container via Task.Exec call.
@@ -34,35 +34,35 @@ pub trait Process {
 /// while task process requires slightly more complex logic and needs to be deleted through the task manager.
 pub trait ExecProcess: Process {
     // delete deletes the process
-    fn delete(&self) -> Result<super::Exit, String>;
+    fn delete(&self) -> Result<super::Exit>;
 }
 
 /// Task is the runtime object for an executing container
 pub trait Task {
     // pid of the process
-    fn pid(&self) -> Result<u32, String>;
+    fn pid(&self) -> Result<u32>;
     // namespace that the task exists in
     fn namespace(&self) -> String;
     // pause pauses the container process
-    fn pause(&self) -> Result<(), String>;
+    fn pause(&self) -> Result<()>;
     // resume unpauses the container process
-    fn resume(&self) -> Result<(), String>;
+    fn resume(&self) -> Result<()>;
     // exec adds a process into the container
-    fn exec(&self, id: &str, opts: ExecOpts) -> Result<Box<dyn ExecProcess>, String>;
+    fn exec(&self, id: &str, opts: ExecOpts) -> Result<Box<dyn ExecProcess>>;
     // pids returns all pids
-    fn pids(&self) -> Result<Vec<ProcessInfo>, String>;
+    fn pids(&self) -> Result<Vec<ProcessInfo>>;
     // check_point checkpoints a container to an image with live system data
-    fn check_point(&self, path: &str, opts: *mut prost_types::Any) -> Result<(), String>;
+    fn check_point(&self, path: &str, opts: *mut prost_types::Any) -> Result<()>;
     // update sets the provided resources to a running task
     fn update(
         &self,
         resources: *mut prost_types::Any,
         annotations: HashMap<String, String>,
-    ) -> Result<(), String>;
+    ) -> Result<()>;
     // process returns a process within the task for the provided id
-    fn process(&self, id: &str) -> Result<Box<dyn ExecProcess>, String>;
+    fn process(&self, id: &str) -> Result<Box<dyn ExecProcess>>;
     // stats returns runtime specific metrics for a task
-    fn stats(&self) -> Result<*mut prost_types::Any, String>;
+    fn stats(&self) -> Result<*mut prost_types::Any>;
 }
 
 /// ExecOpts provides additional options for additional processes running in a task

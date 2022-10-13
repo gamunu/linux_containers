@@ -152,15 +152,15 @@ impl Operator {
     }
 }
 
-pub struct Select<'a> {
-    field_path: Vec<&'a str>,
+pub struct Select {
+    field_path: Vec<String>,
     operator: Operator,
-    value: &'a str,
+    value: String,
     re: Option<regex::Regex>,
 }
 
-impl<'a> Select<'a> {
-    fn is_match(mut self, adaptor: &Box<dyn Adaptor>) -> bool {
+impl Select {
+    fn is_match(mut self, adaptor: Box<dyn Adaptor>) -> bool {
         let (value, present) = adaptor.field(self.field_path);
         match self.operator {
             Operator::Present => return present,
@@ -169,7 +169,7 @@ impl<'a> Select<'a> {
             Operator::Matches => {
                 let r = match self.re {
                     Some(r) => r,
-                    None => match regex::Regex::new(self.value) {
+                    None => match regex::Regex::new(self.value.as_str()) {
                         Ok(a) => a,
                         Err(_e) => {
                             error!("error compiling regex {}", self.value);
@@ -178,7 +178,7 @@ impl<'a> Select<'a> {
                     },
                 };
                 self.re = Some(r.clone());
-                return r.is_match(self.value);
+                return r.is_match(self.value.as_str());
             }
         };
     }

@@ -1,7 +1,8 @@
+mod helpers;
 pub mod store;
+use crate::error::Result;
 use oci_spec::image;
 use std::{collections::HashMap, fs, io, time};
-use crate::error::Result;
 
 // Provider provides a reader interface for specific content
 pub trait Provider {
@@ -38,11 +39,11 @@ impl<'i> Info<'i> {
         labels: HashMap<&'i str, &'i str>,
     ) -> Info<'i> {
         Info {
-            digest: digest,
-            size: size,
-            created_at: created_at, //panic TODO: write this in a safe way
-            updated_at: updated_at, //panic
-            labels: labels,
+            digest,
+            size,
+            created_at, //panic TODO: write this in a safe way
+            updated_at, //panic
+            labels,
         }
     }
 }

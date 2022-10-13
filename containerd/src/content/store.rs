@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 use filetime::FileTime;
 use image_digest::ImageDigest;
 use log::warn;
@@ -27,11 +27,11 @@ pub struct Store {
 
 impl Store {
     // new returns a local content store
-    fn new<P: AsRef<Path>>(root: P) -> io::Result<Store> {
+    fn new<P: AsRef<Path>>(root: P) -> Result<Store> {
         let root_path: &Path = root.as_ref();
         match fs::create_dir(root_path.join("ingest")) {
             Ok(_) => {}
-            Err(e) => return Err(e),
+            Err(e) => return Err(Error::new(ErrorKind::IOError, e)),
         };
 
         Ok(Store {
@@ -40,11 +40,11 @@ impl Store {
         })
     }
 
-    fn new_with_label_store<P: AsRef<Path>>(root: P, ls: Box<dyn LabelStore>) -> io::Result<Store> {
+    fn new_with_label_store<P: AsRef<Path>>(root: P, ls: Box<dyn LabelStore>) -> Result<Store> {
         let root_path: &Path = root.as_ref();
         match fs::create_dir(root_path.join("ingest")) {
             Ok(_) => {}
-            Err(e) => return Err(e),
+            Err(e) => return Err(Error::new(ErrorKind::IOError, e)),
         };
 
         Ok(Store {
@@ -61,10 +61,10 @@ impl Store {
         let file: fs::File = match fs::OpenOptions::new().read(true).open(&path) {
             Ok(f) => f,
             Err(e) => {
-                return Err(Error::Unknown(format!(
-                    "blob {} expected at {}: {}",
-                    digest.digest, path_str, e
-                )))
+                return Err(Error::new(
+                    ErrorKind::IOError,
+                    format!("blob {} expected at {}: {}", digest.digest, path_str, e),
+                ));
             }
         };
 
@@ -86,11 +86,10 @@ impl super::Manager for Store {
         let meta: fs::Metadata = match fs::metadata(blob_path) {
             Ok(m) => m,
             Err(e) => {
-                return Err(Error::Unknown(format!(
-                    "content {}: {}",
-                    digest.to_string(),
-                    e.to_string()
-                )))
+                return Err(Error::new(
+                    ErrorKind::IOError,
+                    format!("content {}: {}", digest.to_string(), e.to_string()),
+                ));
             }
         };
 
@@ -110,10 +109,15 @@ impl super::Manager for Store {
         ))
     }
 
-    fn update<'a>(&self, info: &'a super::Info, fieldpaths: Vec<&'a str>) -> Result<super::Info<'a>> {
+    fn update<'a>(
+        &self,
+        info: &'a super::Info,
+        fieldpaths: Vec<&'a str>,
+    ) -> Result<super::Info<'a>> {
         if self.ls.is_none() {
-            return Err(Error::FailedPrecondition(
-                "update not supported on immutable content store".to_owned(),
+            return Err(Error::new(
+                ErrorKind::FailedPrecondition,
+                "update not supported on immutable content store",
             ));
         }
         let blob_path: PathBuf = self.blob_path(info.digest.clone());
@@ -121,10 +125,10 @@ impl super::Manager for Store {
         let meta = match fs::metadata(&blob_path) {
             Ok(m) => m,
             Err(e) => {
-                return Err(Error::NotFound(format!(
-                    "content {}",
-                    info.digest.to_string()
-                )));
+                return Err(Error::new(
+                    ErrorKind::NotFound,
+                    format!("content {}", info.digest.to_string()),
+                ));
             }
         };
 
@@ -145,11 +149,14 @@ impl super::Manager for Store {
                         labels = info.labels.clone();
                     }
                     _ => {
-                        return Err(Error::InvalidArgument(format!(
-                            "cannot update {} field on content info {}",
-                            path,
-                            info.digest.to_string()
-                        )))
+                        return Err(Error::new(
+                            ErrorKind::InvalidArgument,
+                            format!(
+                                "cannot update {} field on content info {}",
+                                path,
+                                info.digest.to_string()
+                            ),
+                        ));
                     }
                 }
             }

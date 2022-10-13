@@ -15,7 +15,7 @@ const ERR_STOP_HANDLER: &str = "stop handler";
 const ERR_EMPTY_WALK: &str = "image might be filtered out";
 
 // Handler handles image manifests
-trait Handler {
+pub trait Handler {
     fn handle(&self, desc: &image::Descriptor) -> Result<Vec<image::Descriptor>, String>;
 }
 
