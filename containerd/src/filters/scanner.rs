@@ -1,5 +1,8 @@
+use crate::error::{Error, ErrorKind, Result};
 use std::{iter::Peekable, str::CharIndices};
 
+#[derive(Clone, Copy)]
+#[repr(i8)]
 pub enum Token {
     EOF,
     Quoted,
@@ -10,16 +13,53 @@ pub enum Token {
     Illegal,
 }
 
+impl From<u8> for Token {
+    fn from(item: u8) -> Self {
+        use Token::*;
+        match item {
+            0 => return EOF,
+            1 => return Quoted,
+            2 => return Value,
+            3 => return Field,
+            4 => return Separator,
+            5 => return Operator,
+            _ => return Illegal
+        }
+    }
+}
+
+impl From<char> for Token {
+    fn from(item: char) -> Self {
+        use Token::*;
+        match item as u8 {
+            0 => return EOF,
+            1 => return Quoted,
+            2 => return Value,
+            3 => return Field,
+            4 => return Separator,
+            5 => return Operator,
+            _ => return Illegal,
+        }
+    }
+}
+
+impl Into<char> for Token {
+    fn into(self) -> char {
+        self as u8 as char
+    }
+}
+
 impl Token {
-    fn as_str<'a>(self) -> &'a str {
+    fn as_str<'a>(self) -> &'static str {
+        use Token::*;
         match self {
-            Token::EOF => return "EOF",
-            Token::Quoted => return "Quoted",
-            Token::Value => return "Value",
-            Token::Field => return "Field",
-            Token::Separator => return "Separator",
-            Token::Operator => return "Operator",
-            Token::Illegal => return "Illegal",
+            EOF => return "EOF",
+            Quoted => return "Quoted",
+            Value => return "Value",
+            Field => return "Field",
+            Separator => return "Separator",
+            Operator => return "Operator",
+            Illegal => return "Illegal",
         }
     }
 
@@ -28,6 +68,7 @@ impl Token {
     }
 }
 
+#[derive(Clone)]
 struct Scanner<'a> {
     input: &'a str,
     iter: Peekable<CharIndices<'a>>,
@@ -49,225 +90,148 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn next(&mut self) -> Option<char> {
-        if self.pos >= self.input.chars().count() {
-            return None;
+    fn next<'b>(&'b mut self) -> char {
+        let (pos, ch) = match self.iter.next() {
+            Some(c) => c,
+            None => return Token::EOF.into(),
         };
-        self.pos = self.ppos;
-        // we are keeping track of the next
-        // so unwrap assumed to be safe.
-        let (s, c) = self.iter.next().unwrap();
-        self.ppos += s;
-        Some(c)
-    }
+        self.pos += pos;
 
-    fn peek(&mut self) -> Option<char> {
-        let pos = self.pos;
-        let ppos = self.ppos;
-
-        let ch = self.next();
-
-        self.pos = pos;
-        self.ppos = ppos;
         ch
     }
 
-    fn scan<'b>(&mut self) -> (usize, Token, &'b str) {
-        let pos: usize = self.pos;
+    fn peek(&mut self) -> char {
+        match self.iter.peek() {
+            Some((_, c)) => c.clone(),
+            None => Token::EOF.into(),
+        }
+    }
 
-        let ch = match self.next() {
-            Some(c) => c,
-            None => return (self.pos, Token::EOF, ""),
-        };
+    fn scan(&mut self) -> (usize, Token, &'a str) {
+        let mut pos = self.pos;
+
+        // skip all whitespackes
+        while self.peek().is_whitespace() {
+            self.next();
+            pos = self.pos;
+        }
+
+        let ch = self.next();
+        pos = self.pos;
 
         if is_quote_token(ch) {
-            match self.scan_quoted(ch) {
-                Some(b) => {
-                    if !b {
-                        match self.input.get(self.pos..self.ppos) {
-                            Some(c) => todo!(),//return (pos, Token::Illegal, c),
-                            None => {}
-                        }
-                    }
-                }
-                None => {}
-            }
-            todo!()
-        }
-
-        (self.pos, Token::EOF, "")
-    }
-
-    fn scan_field(mut self) -> Option<()> {
-        loop {
-            match self.peek() {
-                Some(c) => {
-                    if !is_field_token(c.clone()) {
-                        break;
-                    }
-                }
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
-            };
-            match self.next() {
-                Some(_) => {}
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
-            };
-        }
-        Some(())
-    }
-
-    fn scan_operator(mut self) -> Option<()> {
-        loop {
-            match self.peek() {
-                Some(c) => {
-                    match c.clone() {
-                        '=' | '!' | '~' => self.next().unwrap(),
-                        _ => {
-                            self.err = "iterater next returned None";
-                            return None;
-                        }
-                    };
-                }
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
-            };
-        }
-    }
-
-    fn scan_value(mut self) -> Option<()> {
-        loop {
-            match self.peek() {
-                Some(c) => {
-                    if !is_value_token(c.clone()) {
-                        break;
-                    }
-                }
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
-            };
-
-            match self.next() {
-                Some(_) => {}
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
+            if !self.scan_quoted(ch) {
+                // this shouldn't error out. pos and ppos will not exceed the
+                // total length
+                let slice = self.input.get(self.pos..self.ppos).unwrap();
+                return (pos, Token::Illegal, slice);
+            } else if is_separator_token(ch) {
+                self.value = false;
+                let slice = self.input.get(self.pos..self.ppos).unwrap();
+                return (pos, Token::Separator, slice);
+            } else if is_operator_token(ch) {
+                self.scan_operator();
+                self.value = true;
+                let slice = self.input.get(self.pos..self.ppos).unwrap();
+                return (pos, Token::Operator, slice);
+            } else if is_field_token(ch) {
+                self.scan_field();
+                let slice = self.input.get(self.pos..self.ppos).unwrap();
+                return (pos, Token::Field, slice);
             }
         }
-        Some(())
+
+        (self.pos, Token::from(ch), "")
     }
 
-    fn scan_quoted(&mut self, quote: char) -> Option<bool> {
+    fn scan_field(&mut self) {
+        loop {
+            let ch = self.peek();
+            if !is_field_token(ch) {
+                break;
+            }
+            self.next();
+        }
+    }
+
+    fn scan_operator(&mut self) {
+        loop {
+            let ch = self.peek();
+            match ch {
+                '=' | '!' | '~' => self.next(),
+                _ => return,
+            };
+        }
+    }
+
+    fn scan_value(mut self) {
+        loop {
+            let ch = self.peek();
+            if !is_value_token(ch) {
+                break;
+            }
+
+            self.next();
+        }
+    }
+
+    fn scan_quoted(&mut self, quote: char) -> bool {
         let mut illegal = false;
-        let mut ch = match self.next() {
-            Some(c) => c,
-            _ => {
-                self.err = "iterater next returned None";
-                return None;
-            }
-        };
+        let mut ch = self.next(); // read character after quote
+
         while ch != quote {
-            if ch == '\n' || ch < '0' {
+            if ch == '\n' || ch as u8 <= 0 {
                 self.err = "quoted literal not terminated";
-                return None;
+                return false;
             };
             if ch == '\\' {
                 let mut legal = false;
-                (ch, legal) = match self.scan_escape(quote) {
-                    Some(c) => c,
-                    None => return None,
-                };
+                (ch, legal) = self.scan_escape(quote);
                 if !illegal {
                     illegal = true
                 }
             } else {
-                ch = match self.next() {
-                    Some(c) => c,
-                    _ => return None,
-                };
+                ch = self.next();
             }
         }
-        Some(!illegal)
+        !illegal
     }
 
-    fn scan_escape(&mut self, quote: char) -> Option<(char, bool)> {
-        let mut legal: bool = false;
-        let mut ch = match self.next() {
-            Some(c) => c,
-            _ => {
-                self.err = "iterater next returned None";
-                return None;
-            }
-        };
-
+    fn scan_escape(&mut self, quote: char) -> (char, bool) {
+        let mut ch = self.next();
         match ch {
-            'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' => {
-                ch = match self.next() {
-                    Some(c) => c,
-                    _ => {
-                        self.err = "iterater next returned None";
-                        return None;
-                    }
-                };
-                legal = true;
+            'a' | 'b' | 'f' | 'n' | 'r' | 't' | 'v' | '\\' => (self.next(), true),
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' => self.scan_digits(ch, 8, 3),
+            'x' => self.scan_digits(ch, 16, 2),
+            'u' => {
+                ch = self.next();
+                self.scan_digits(ch, 16, 4)
             }
-            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' => return self.scan_digits(ch, 8, 3),
-            'x' => match self.next() {
-                Some(c) => return self.scan_digits(c, 16, 2),
-                None => return None,
-            },
-            'u' => match self.next() {
-                Some(c) => return self.scan_digits(c, 16, 4),
-                None => return None,
-            },
-            'U' => match self.next() {
-                Some(c) => return self.scan_digits(c, 16, 8),
-                None => return None,
-            },
-            quote if quote == ch => {
-                ch = match self.next() {
-                    Some(c) => c,
-                    _ => {
-                        self.err = "iterater next returned None";
-                        return None;
-                    }
-                };
-                legal = true;
+            'U' => {
+                ch = self.next();
+                self.scan_digits(ch, 16, 8)
             }
-            _ => self.err = "illegal escape sequence",
+            quote if quote == ch => (self.next(), true),
+            _ => {
+                self.err = "illegal escape sequence";
+                (self.next(), true)
+            }
         }
-        Some((ch, legal))
     }
 
-    fn scan_digits(&mut self, ch: char, base: u64, n: u64) -> Option<(char, bool)> {
+    fn scan_digits<'b>(&'b mut self, ch: char, base: u64, n: u64) -> (char, bool) {
         let mut chi = ch;
         let mut ni = n;
         while ni > 0 && digit_val(ch) < base {
-            chi = match self.next() {
-                Some(c) => c,
-                _ => {
-                    self.err = "iterater next returned None";
-                    return None;
-                }
-            };
+            chi = self.next();
             ni = ni - 1;
         }
 
         if ni > 0 {
             self.err = "illegal numeric escape sequence";
-            return Some((chi, false));
+            return (chi, false);
         }
-        Some((chi, true))
+        return (chi, true);
     }
 }
 

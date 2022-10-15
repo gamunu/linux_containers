@@ -6,18 +6,18 @@ use std::collections::HashMap;
 pub trait TaskMonitor {
     // monitor adds the provided container to the monitor.
     // Labels are optional (can be nil) key value pairs to be added to the metrics namespace.
-    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<String>;
-    fn stop(&self, task: &dyn Task) -> Result<String>;
+    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<()>;
+    fn stop(&self, task: &dyn Task) -> Result<()>;
 }
 
 struct NoopTaskMonitor {}
 
 impl TaskMonitor for NoopTaskMonitor {
-    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<String> {
+    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<()> {
         todo!()
     }
 
-    fn stop(&self, task: &dyn Task) -> Result<String> {
+    fn stop(&self, task: &dyn Task) -> Result<()> {
         todo!()
     }
 }
@@ -27,7 +27,7 @@ struct MultiTaskMonitor {
 }
 
 impl TaskMonitor for MultiTaskMonitor {
-    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<String> {
+    fn monitor(&self, task: &dyn Task, labels: &mut HashMap<String, String>) -> Result<()> {
         for monitor in self.monitors.iter() {
             match monitor.monitor(task, labels) {
                 Err(e) => return Err(e),
@@ -37,7 +37,7 @@ impl TaskMonitor for MultiTaskMonitor {
         Ok(())
     }
 
-    fn stop(&self, task: &dyn Task) -> Result<String> {
+    fn stop(&self, task: &dyn Task) -> Result<()> {
         for monitor in self.monitors.iter() {
             match monitor.stop(task) {
                 Err(e) => return Err(e),

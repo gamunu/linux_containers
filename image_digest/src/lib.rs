@@ -36,10 +36,7 @@ impl ImageDigest {
         }
         let digest: String = HEXUPPER.encode(context.finish().as_ref());
 
-        Ok(ImageDigest {
-            algorithm: "sha256".to_string(),
-            digest: digest,
-        })
+        Ok(ImageDigest { algorithm: "sha256".to_string(), digest: digest })
     }
 
     pub fn to_string(&self) -> String {

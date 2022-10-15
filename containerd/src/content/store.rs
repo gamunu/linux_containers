@@ -34,10 +34,7 @@ impl Store {
             Err(e) => return Err(Error::new(ErrorKind::IOError, e)),
         };
 
-        Ok(Store {
-            root: root_path.to_path_buf(),
-            ls: None,
-        })
+        Ok(Store { root: root_path.to_path_buf(), ls: None })
     }
 
     fn new_with_label_store<P: AsRef<Path>>(root: P, ls: Box<dyn LabelStore>) -> Result<Store> {
@@ -47,10 +44,7 @@ impl Store {
             Err(e) => return Err(Error::new(ErrorKind::IOError, e)),
         };
 
-        Ok(Store {
-            root: root_path.to_path_buf(),
-            ls: Some(ls),
-        })
+        Ok(Store { root: root_path.to_path_buf(), ls: Some(ls) })
     }
 
     // reader_at returns an io.ReaderAt for the blob.
@@ -73,10 +67,7 @@ impl Store {
 
     fn blob_path(&self, digest: image_digest::ImageDigest) -> PathBuf {
         // validate ??
-        self.root
-            .join("blobs")
-            .join(digest.algorithm)
-            .join(digest.digest)
+        self.root.join("blobs").join(digest.algorithm).join(digest.digest)
     }
 }
 
@@ -191,11 +182,7 @@ impl super::Manager for Store {
         match filetime::set_file_mtime(blob_path, updated_at) {
             Ok(_) => {}
             Err(e) => {
-                warn!(
-                    "could not change access time for {}: {}",
-                    info.digest.to_string(),
-                    e
-                )
+                warn!("could not change access time for {}: {}", info.digest.to_string(), e)
             }
         }
 

@@ -12,12 +12,7 @@ pub fn setup_loop(source: &PathBuf, read_only: bool, auto_clear: bool) -> Result
         Err(e) => return Err(format!("could not open loop device: {}", e)),
     };
 
-    match ld
-        .with()
-        .autoclear(auto_clear)
-        .read_only(read_only)
-        .attach(source)
-    {
+    match ld.with().autoclear(auto_clear).read_only(read_only).attach(source) {
         Ok(_) => {}
         Err(e) => return Err(format!("could not set loop fd for device: {}", e)),
     };

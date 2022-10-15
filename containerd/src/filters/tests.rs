@@ -1,35 +1,31 @@
 #[cfg(test)]
 mod tests {
-    use super::super::adaptor::{AdapterFunc, Adaptor};
+    use super::super::adaptor::Adaptor;
 
-    use std::{borrow::Borrow, collections::HashMap};
+    use std::collections::HashMap;
 
     #[test]
     fn test_filters() {
         #[derive(Clone)]
-        struct cEntry {
+        struct CEntry {
             name: String,
             other: String,
             labels: Option<HashMap<String, String>>,
         }
 
         let corpus = vec![
-            cEntry {
+            CEntry {
                 name: "food".to_owned(),
                 other: "".to_owned(),
                 labels: Some(HashMap::from([("foo".to_owned(), "true".to_owned())])),
             },
-            cEntry {
-                name: "bar".to_owned(),
-                other: "".to_owned(),
-                labels: None,
-            },
-            cEntry {
+            CEntry { name: "bar".to_owned(), other: "".to_owned(), labels: None },
+            CEntry {
                 name: "bar".to_owned(),
                 other: "".to_owned(),
                 labels: Some(HashMap::from([("bar".to_owned(), "true".to_owned())])),
             },
-            cEntry {
+            CEntry {
                 name: "fooer".to_owned(),
                 other: "".to_owned(),
                 labels: Some(HashMap::from([(
@@ -37,7 +33,7 @@ mod tests {
                     "present".to_owned(),
                 )])),
             },
-            cEntry {
+            CEntry {
                 name: "fooer".to_owned(),
                 other: "".to_owned(),
                 labels: Some(HashMap::from([(
@@ -45,27 +41,16 @@ mod tests {
                     "present".to_owned(),
                 )])),
             },
-            cEntry {
-                name: "baz".to_owned(),
-                other: "too complex, yo".to_owned(),
-                labels: None,
-            },
-            cEntry {
-                name: "bazo".to_owned(),
-                other: "abc".to_owned(),
-                labels: None,
-            },
-            cEntry {
+            CEntry { name: "baz".to_owned(), other: "too complex, yo".to_owned(), labels: None },
+            CEntry { name: "bazo".to_owned(), other: "abc".to_owned(), labels: None },
+            CEntry {
                 name: "compound".to_owned(),
                 other: "".to_owned(),
-                labels: Some(HashMap::from([(
-                    "foo".to_owned(),
-                    "omg_asdf.asdf-qwer".to_owned(),
-                )])),
+                labels: Some(HashMap::from([("foo".to_owned(), "omg_asdf.asdf-qwer".to_owned())])),
             },
         ];
 
-        let adapt = |obj: cEntry| -> Box<dyn Adaptor> {
+        let adapt = |obj: CEntry| -> Box<dyn Adaptor> {
             Box::new(super::super::adaptor::AdapterFunc(
                 move |field_path: Vec<String>| -> (String, bool) {
                     match field_path[0].as_str() {
@@ -88,7 +73,7 @@ mod tests {
         struct tEntry<'a> {
             name: String,
             input: String,
-            expected: Option<&'a Vec<cEntry>>,
+            expected: Option<&'a Vec<CEntry>>,
             err_string: Option<String>,
         }
 

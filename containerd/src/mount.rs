@@ -56,9 +56,7 @@ impl Mount {
 
         let (flags, data, losetup) = self.parse_mount_options(&options);
 
-        let pagesize = unistd::sysconf(unistd::SysconfVar::PAGE_SIZE)
-            .unwrap()
-            .unwrap() as usize;
+        let pagesize = unistd::sysconf(unistd::SysconfVar::PAGE_SIZE).unwrap().unwrap() as usize;
 
         if data.len() > pagesize {
             return Err("mount options is too long".to_string());
@@ -331,10 +329,7 @@ impl Mount {
         impl Flag {
             /// Creates a new Flags.
             fn new(clear: bool, flag: u64) -> Flag {
-                Flag {
-                    clear: clear,
-                    flag: flag,
-                }
+                Flag { clear: clear, flag: flag }
             }
         }
 

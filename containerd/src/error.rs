@@ -24,6 +24,10 @@ impl Error {
         Self::_new(kind, error.into())
     }
 
+    pub fn new_simple(kind: ErrorKind) -> Error {
+        Error { repr: Repr::new_simple(kind) }
+    }
+
     pub fn other<E>(error: E) -> Error
     where
         E: Into<Box<dyn error::Error + Send + Sync>>,
@@ -32,16 +36,12 @@ impl Error {
     }
 
     fn _new(kind: ErrorKind, error: Box<dyn error::Error + Send + Sync>) -> Error {
-        Error {
-            repr: Repr::new_custom(Box::new(Custom { kind, error })),
-        }
+        Error { repr: Repr::new_custom(Box::new(Custom { kind, error })) }
     }
 
     #[inline]
     pub(crate) const fn from_static_message(msg: &'static SimpleMessage) -> Error {
-        Self {
-            repr: Repr::new_simple_message(msg),
-        }
+        Self { repr: Repr::new_simple_message(msg) }
     }
 }
 
@@ -61,9 +61,7 @@ impl From<ErrorKind> for Error {
     /// ```
     #[inline]
     fn from(kind: ErrorKind) -> Error {
-        Error {
-            repr: Repr::new_simple(kind),
-        }
+        Error { repr: Repr::new_simple(kind) }
     }
 }
 
